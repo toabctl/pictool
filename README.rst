@@ -5,18 +5,8 @@ pictool - Random collection of useful things you can do with images
 
 `pictool` is a command line program for manipulating and altering images.
 
-Installation
-------------
-For running `pictool`, opencv_ and gexiv2_ need to be installed. Usually, both
-are included in different distributions (like openSUSE_ or Debian_) and can
-be installed via the available package manager (like `zypper` or `apt`).
+You can find the documentation (including installation instructions) at
+`pictool.readthedocs.io`_
 
-When the requirements are installed, you can install `pictool` via `pip`::
+.. _pictool.readthedocs.io: http://pictool.readthedocs.io/en/latest/
 
-  pip install pictool
-
-
-.. _opencv: https://opencv.org/
-.. _gexiv2: https://wiki.gnome.org/Projects/gexiv2
-.. _openSUSE: https://opensuse.org/
-.. _Debian: https://www.debian.org/
