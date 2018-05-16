@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Copyright 2018 Thomas Bechtold <thomasbechtold@jpberlin.de>
