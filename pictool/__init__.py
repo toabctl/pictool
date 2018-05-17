@@ -23,14 +23,8 @@ import requests
 import time
 import sys
 
-# GNOME gobject introspection
-import gi
-
-gi.require_version('GExiv2', '0.10')
-from gi.repository import GLib # noqa
-from gi.repository import GExiv2 # noqa
-
 import utils_opencv
+import utils_gexiv
 
 
 def _wait():
@@ -80,21 +74,9 @@ def _loop_path(path):
             raise Exception('"%s" is not a file or a dir' % (p))
 
 
-def _get_metadata(path):
-    """get a gexiv2 metadata object or None for path"""
-    metadata = GExiv2.Metadata.new()
-    try:
-        metadata.open_path(path)
-    except GLib.Error as e:
-        print('{}: can not get metadata obj: {}'.format(path, e))
-        return None
-    else:
-        return metadata
-
-
 def gps_set(args):
     for path in _loop_path(args.path):
-        metadata = _get_metadata(path)
+        metadata = utils_gexiv.get_metadata(path)
         if metadata:
             # do not override if there is already GPS data
             if not _do_gps_get(metadata) or args.force:
@@ -118,7 +100,7 @@ def _do_gps_get(metadata):
 def gps_get(args=None):
     """print GPS information"""
     for path in _loop_path(args.path):
-        metadata = _get_metadata(path)
+        metadata = utils_gexiv.get_metadata(path)
         if metadata:
             data = _do_gps_get(metadata)
             if data:
@@ -131,7 +113,7 @@ def gps_get(args=None):
 def location_set(args):
     """set the location information based on the GPS data"""
     for path in _loop_path(args.path):
-        metadata = _get_metadata(path)
+        metadata = utils_gexiv.get_metadata(path)
         if not metadata:
             continue
         gps_data = _do_gps_get(metadata)
@@ -278,7 +260,6 @@ def parse_args():
 
 def main():
     args = parse_args()
-    GExiv2.initialize()
 
     args.func(args)
     sys.exit(0)
