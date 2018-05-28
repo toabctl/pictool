@@ -22,17 +22,9 @@ import os
 import requests
 import time
 import sys
-import math
 
-# openCV
-import cv2
-
-# GNOME gobject introspection
-import gi
-
-gi.require_version('GExiv2', '0.10')
-from gi.repository import GLib # noqa
-from gi.repository import GExiv2 # noqa
+import utils_opencv
+import utils_gexiv
 
 
 def _wait():
@@ -82,21 +74,9 @@ def _loop_path(path):
             raise Exception('"%s" is not a file or a dir' % (p))
 
 
-def _get_metadata(path):
-    """get a gexiv2 metadata object or None for path"""
-    metadata = GExiv2.Metadata.new()
-    try:
-        metadata.open_path(path)
-    except GLib.Error as e:
-        print('{}: can not get metadata obj: {}'.format(path, e))
-        return None
-    else:
-        return metadata
-
-
 def gps_set(args):
     for path in _loop_path(args.path):
-        metadata = _get_metadata(path)
+        metadata = utils_gexiv.get_metadata(path)
         if metadata:
             # do not override if there is already GPS data
             if not _do_gps_get(metadata) or args.force:
@@ -120,7 +100,7 @@ def _do_gps_get(metadata):
 def gps_get(args=None):
     """print GPS information"""
     for path in _loop_path(args.path):
-        metadata = _get_metadata(path)
+        metadata = utils_gexiv.get_metadata(path)
         if metadata:
             data = _do_gps_get(metadata)
             if data:
@@ -133,7 +113,7 @@ def gps_get(args=None):
 def location_set(args):
     """set the location information based on the GPS data"""
     for path in _loop_path(args.path):
-        metadata = _get_metadata(path)
+        metadata = utils_gexiv.get_metadata(path)
         if not metadata:
             continue
         gps_data = _do_gps_get(metadata)
@@ -180,40 +160,27 @@ def location_set(args):
             print('"{}" Updated location tags'.format(path))
 
 
-def face_crop(args):
-    """crop faces from images"""
-    cascade_path = os.path.join(args.opencv_data_dir, args.opencv_cascade)
-    if not os.path.exists(cascade_path):
-        raise Exception("openCV file '%s' does not exist" % (cascade_path))
+def face_normalize(args):
+    """normalize faces from images"""
+    face_cascade_path = os.path.join(args.opencv_data_dir,
+                                     args.opencv_face_cascade)
+    eye_cascade_path = os.path.join(args.opencv_data_dir,
+                                    args.opencv_eye_cascade)
+    if not os.path.exists(face_cascade_path):
+        raise Exception(
+            "OpenCV face cascade '%s' does not exist" % (face_cascade_path))
+    if not os.path.exists(eye_cascade_path):
+        raise Exception(
+            "OpenCV eye cascade '%s' does not exist" % (eye_cascade_path))
 
-    def _image_resize(image_org):
-        # FIXME(toabctl): Do not hardcode the scale factor
-        scale = 0.3
-        h = int(image_org.shape[0] * scale)
-        w = int(image_org.shape[1] * scale)
-        image_resized = cv2.resize(image_org, (w, h), cv2.INTER_AREA)
-        return image_resized
-
-    cascade_classifier = cv2.CascadeClassifier(cascade_path)
     # loop over all given images
     for path in _loop_path(args.path):
-        image_org = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        image_resized = _image_resize(image_org)
-        image_name = os.path.basename(path)
         image_dest_dir = args.dest_dir or os.path.dirname(path)
         if not os.path.exists(image_dest_dir):
             os.makedirs(image_dest_dir)
 
-        side = math.sqrt(image_resized.size)
-        minlen = int(side / 20)
-        maxlen = int(side / 2)
-        flags = cv2.CASCADE_DO_CANNY_PRUNING
-        faces = cascade_classifier.detectMultiScale(
-            image_resized, 1.1, 4, flags, (minlen, minlen), (maxlen, maxlen))
-        for i, (x, y, w, h) in enumerate(faces, 1):
-            face_name = '%s%02i-%s' % (args.file_name_prefix, i, image_name)
-            image_face = os.path.join(image_dest_dir, face_name)
-            cv2.imwrite(image_face, image_resized[y:(y + h), x:(x + w)])
+        utils_opencv.normalize_face(path, image_dest_dir,
+                                    face_cascade_path, eye_cascade_path)
 
 
 def parse_args():
@@ -251,33 +218,41 @@ def parse_args():
                                      help='file or directory')
     parser_location_set.set_defaults(func=location_set)
 
-    # face crop creator
-    parser_face_crop = subparsers.add_parser(
-        'face-crop',
-        help='Crop faces from images and store results in new images')
+    # face normalization parser
+    parser_face_normalize = subparsers.add_parser(
+        'face-normalize',
+        help='Normalize faces from images and store results in new images')
     # openCV related arguments
-    group_opencv = parser_face_crop.add_argument_group('opencv parameters')
+    group_opencv = parser_face_normalize.add_argument_group(
+        'opencv parameters')
     group_opencv.add_argument(
         '--opencv-data-dir', type=str, default='/usr/share/OpenCV/',
         help='This might be different depending on your openCV installation. '
         'Defaults to "%(default)s".')
     group_opencv.add_argument(
-        '--opencv-cascade', type=str,
+        '--opencv-face-cascade', type=str,
         default='haarcascades/haarcascade_frontalface_alt.xml',
-        help='A openCV cascade definition. This is relative to the '
-        'base direcectory given via "--opencv-data-dir". '
+        help='A openCV face cascade classifier definition. This is relative '
+        'to the base direcectory given via "--opencv-data-dir". '
         'Defaults to "%(default)s".')
-    parser_face_crop.add_argument(
+    group_opencv.add_argument(
+        '--opencv-eye-cascade', type=str,
+        default='haarcascades/haarcascade_eye.xml',
+        help='A openCV eye cascade classifier definition. This is relative to '
+        'the base direcectory given via "--opencv-data-dir". '
+        'Defaults to "%(default)s".')
+
+    parser_face_normalize.add_argument(
         '--file-name-prefix', type=str, default='face',
-        help='The prefix for the saved croped image.'
+        help='The prefix for the saved normalized image.'
         'Defaults to "%(default)s".')
-    parser_face_crop.add_argument(
+    parser_face_normalize.add_argument(
         '--dest-dir', type=str,
         help='The destination dir where the face images are stored.'
         'If not given, the images are stored next to the source images.')
-    parser_face_crop.add_argument('path', type=str, nargs='+',
-                                  help='file or directory')
-    parser_face_crop.set_defaults(func=face_crop)
+    parser_face_normalize.add_argument('path', type=str, nargs='+',
+                                       help='file or directory')
+    parser_face_normalize.set_defaults(func=face_normalize)
 
     args = parser.parse_args()
     return args
@@ -285,7 +260,6 @@ def parse_args():
 
 def main():
     args = parse_args()
-    GExiv2.initialize()
 
     args.func(args)
     sys.exit(0)
