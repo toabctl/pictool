@@ -183,11 +183,38 @@ def face_normalize(args):
                                     face_cascade_path, eye_cascade_path)
 
 
+def md_tag_list(args):
+    """
+    List metadata tags for the given image(s)
+    """
+    for path in _loop_path(args.path):
+        metadata = utils_gexiv.get_metadata(path)
+        if not metadata:
+            continue
+        tags = []
+        tags += metadata.get_exif_tags()
+        tags += metadata.get_iptc_tags()
+        tags += metadata.get_xmp_tags()
+        print('{:<55} {:<10}: {}'.format('tag name', 'tag type', 'value'))
+        for tag in tags:
+            print('{:<65} {:<10}: {}'.format(
+                tag, metadata.get_tag_type(tag),
+                metadata.get_tag_interpreted_string(tag)))
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Working with images and image metadata')
 
     subparsers = parser.add_subparsers(title='sub-command help')
+
+    # metadata list all tags
+    parser_md_tag_list = subparsers.add_parser(
+        'md-tag-list', help='List all metadata tags. '
+        'Defaults to %(default)s')
+    parser_md_tag_list.add_argument('path', type=str, nargs='+',
+                                    help='file or directory')
+    parser_md_tag_list.set_defaults(func=md_tag_list)
 
     # GPS setter
     parser_gps_set = subparsers.add_parser('gps-set', help='Modify GPS data')
