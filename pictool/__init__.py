@@ -183,6 +183,98 @@ def face_normalize(args):
                                     face_cascade_path, eye_cascade_path)
 
 
+def _set_xmp_region(metadata, region_number,
+                    area_unit, area_width, area_height, area_x, area_y,
+                    name=None, description=None, type_=None):
+    """
+    Create a XMP region tag with the given properties
+
+    Note: The metadata object needs to be saved after calling this function!
+    """
+    # array index must be > 0
+    if region_number == 0:
+        region_number = 1
+
+    # a single region
+    region_list_entry = 'Xmp.mwg-rs.Regions/mwg-rs:RegionList[%d]' % (
+        region_number)
+    metadata.set_tag_string('%s/mwg-rs:Area/stArea:unit' % (region_list_entry),
+                            area_unit)
+    metadata.set_tag_string('%s/mwg-rs:Area/stArea:w' % (region_list_entry),
+                            area_width)
+    metadata.set_tag_string('%s/mwg-rs:Area/stArea:h' % (region_list_entry),
+                            area_height)
+    metadata.set_tag_string('%s/mwg-rs:Area/stArea:x' % (region_list_entry),
+                            area_x)
+    metadata.set_tag_string('%s/mwg-rs:Area/stArea:y' % (region_list_entry),
+                            area_y)
+    if name:
+        metadata.set_tag_string('%s/mwg-rs:Name' % (region_list_entry),
+                                name)
+    if description:
+        metadata.set_tag_string('%s/mwg-rs:Description' % (region_list_entry),
+                                description)
+    if type_:
+        metadata.set_tag_string('%s/mwg-rs:Type' % (region_list_entry), type_)
+
+
+def _image_region_sync_dimensions(metadata):
+    """
+    Sync the dimension fields for the regions (dest) with the image dimensions
+    from the metadata (src).
+
+    Note: The metadata object needs to be saved after calling this function!
+    """
+    metadata.set_xmp_tag_struct('Xmp.mwg-rs.Regions/mwg-rs:RegionList',
+                                utils_gexiv.GExiv2.StructureType.BAG)
+    metadata.set_tag_string(
+        'Xmp.mwg-rs.Regions/mwg-rs:AppliedToDimensions/stDim:unit', 'pixel')
+    metadata.set_tag_long(
+        'Xmp.mwg-rs.Regions/mwg-rs:AppliedToDimensions/stDim:w',
+        metadata.get_pixel_width())
+    metadata.set_tag_long(
+        'Xmp.mwg-rs.Regions/mwg-rs:AppliedToDimensions/stDim:h',
+        metadata.get_pixel_height())
+
+
+def image_region_add(args):
+    """
+    Add a Xmp.mwg-rs.Regions
+    """
+    metadata = utils_gexiv.get_metadata(args.path)
+    if not metadata:
+        return
+    if not metadata.has_tag('Xmp.mwg-rs.Regions/mwg-rs:RegionList'):
+        _image_region_sync_dimensions(metadata)
+    _set_xmp_region(metadata, args.region, 'pixel',
+                    str(args.width), str(args.height),
+                    str(args.x), str(args.y),
+                    args.name, args.desc, args.type)
+    if not metadata.save_file(args.path):
+            print('Not saved!')
+
+
+def image_region_remove(args):
+    """
+    Remove a Xmp.mwg-rs.Regions tag for the given region number
+    """
+    metadata = utils_gexiv.get_metadata(args.path)
+    if not metadata:
+        return
+    dirty = False
+    for tag in metadata.get_xmp_tags():
+        tag_prefix = 'Xmp.mwg-rs.Regions/mwg-rs:RegionList[{}]'.format(
+            args.region)
+        if tag.startswith(tag_prefix):
+            if not metadata.clear_tag(tag):
+                print('Can not remove region tag {}'.format(tag))
+            else:
+                dirty = True
+    if dirty:
+        if not metadata.save_file(args.path):
+            print('Not saved!')
+
+
 def md_tag_list(args):
     """
     List metadata tags for the given image(s)
@@ -215,6 +307,35 @@ def parse_args():
     parser_md_tag_list.add_argument('path', type=str, nargs='+',
                                     help='file or directory')
     parser_md_tag_list.set_defaults(func=md_tag_list)
+
+    # image regions add
+    parser_image_region_add = subparsers.add_parser(
+        'image-region-add',
+        help='Add image metadata region')
+    parser_image_region_add.add_argument('path', type=str, help='file')
+    parser_image_region_add.add_argument('region', type=int,
+                                         help='Region number (must be >= 1)')
+    parser_image_region_add.add_argument('width', type=int,
+                                         help='Width [px]')
+    parser_image_region_add.add_argument('height', type=int,
+                                         help='Height [px]')
+    parser_image_region_add.add_argument('x', type=int,
+                                         help='x coordinate [px]')
+    parser_image_region_add.add_argument('y', type=int,
+                                         help='y coordinate [px]')
+    parser_image_region_add.add_argument('--name', type=str, help='Name')
+    parser_image_region_add.add_argument('--desc', type=str,
+                                         help='Description')
+    parser_image_region_add.add_argument('--type', type=str, help='Type')
+    parser_image_region_add.set_defaults(func=image_region_add)
+
+    # image regions remove
+    parser_image_region_remove = subparsers.add_parser(
+        'image-region-remove', help='Remove image metadata region')
+    parser_image_region_remove.add_argument('path', type=str, help='file')
+    parser_image_region_remove.add_argument(
+        'region', type=int, help='Region number')
+    parser_image_region_remove.set_defaults(func=image_region_remove)
 
     # GPS setter
     parser_gps_set = subparsers.add_parser('gps-set', help='Modify GPS data')
