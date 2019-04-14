@@ -102,10 +102,18 @@ def gps_get(args=None):
     for path in _loop_path(args.path):
         metadata = utils_gexiv.get_metadata(path)
         if metadata:
-            data = _do_gps_get(metadata)
-            if data:
-                print('{}: {} °N {} °W {} m'.format(
-                    path, data[0], data[1], data[2]))
+            gps_data = _do_gps_get(metadata)
+            if gps_data:
+                if args.include_address:
+                    location_data = _get_location_data(gps_data[0],
+                                                       gps_data[1],
+                                                       None)
+                    address = location_data.get('address', "")
+                else:
+                    address = ""
+
+                print('{}: {} °N {} °W {} m {}'.format(
+                    path, gps_data[0], gps_data[1], gps_data[2], address))
             else:
                 print('{}: No GPS info'.format(path))
 
@@ -350,6 +358,8 @@ def parse_args():
 
     # GPS getter
     parser_gps_get = subparsers.add_parser('gps-get', help='Show GPS location')
+    parser_gps_get.add_argument('--include-address', action='store_true',
+                                help='Also get address for GPS data')
     parser_gps_get.add_argument('path', type=str, nargs='+',
                                 help='file or directory')
     parser_gps_get.set_defaults(func=gps_get)
