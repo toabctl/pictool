@@ -251,7 +251,7 @@ def image_region_add(args):
                     str(args.x), str(args.y),
                     args.name, args.desc, args.type)
     if not metadata.save_file(args.path):
-            print('Not saved!')
+        print('Not saved!')
 
 
 def image_region_remove(args):
