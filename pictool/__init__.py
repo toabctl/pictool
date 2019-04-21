@@ -43,6 +43,24 @@ def _wait():
     _wait.LAST_WAIT_CALL = time.time()
 
 
+def _get_long_lat_from_query(query, email, countrycodes):
+    """get GPS coords from a given query (usually a address)"""
+    payload = {
+        'format': 'json',
+        'polygon_geojson': 1,
+        'q': query
+    }
+    if email:
+        payload['email'] = email
+    if countrycodes:
+        payload['countrycodes'] = ','.join(countrycodes)
+    r = requests.get('http://nominatim.openstreetmap.org/search',
+                     params=payload)
+    if r.status_code != 200:
+        r.raise_for_status()
+    return r.json()
+
+
 def _get_location_data(longitude, latitude, email):
     """get location data as json for the given long/lat"""
     payload = {
@@ -116,6 +134,16 @@ def gps_get(args=None):
                     path, gps_data[0], gps_data[1], gps_data[2], address))
             else:
                 print('{}: No GPS info'.format(path))
+
+
+def gps_get_from_query(args):
+    res = _get_long_lat_from_query(args.query, args.email, None)
+    if res:
+        if 'lon' in res[0] and 'lat' in res[0]:
+            link = 'https://www.openstreetmap.org/?mlat={coords[lat]}&mlon=' \
+                '{coords[lon]}#map=19/{coords[lat]}/{coords[lon]}'. \
+                format(coords=res[0])
+            print('{} °N {} °W {}'.format(res[0]['lon'], res[0]['lat'], link))
 
 
 def location_set(args):
@@ -416,6 +444,20 @@ def parse_args():
     parser_face_normalize.add_argument('path', type=str, nargs='+',
                                        help='file or directory')
     parser_face_normalize.set_defaults(func=face_normalize)
+
+    # helper - get GPS from address query
+    parser_gps_get_from_query = subparsers.add_parser(
+        'gps-get-from-query',
+        help='Get the GPS coords from a given (address) query. '
+        'This command does *not* use any picture(s). It is just a helper.'
+        'It uses the nominatim service from openstreetmap')
+    parser_gps_get_from_query.add_argument(
+        '--email', type=str, default=None,
+        help='This should be used if you plan todo a large number of requests '
+        'against http://nominatim.openstreetmap.org')
+    parser_gps_get_from_query.add_argument(
+        'query', type=str, help='A query. Usually a address name')
+    parser_gps_get_from_query.set_defaults(func=gps_get_from_query)
 
     args = parser.parse_args()
     return args
