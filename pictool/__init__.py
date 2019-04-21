@@ -310,8 +310,8 @@ def parse_args():
 
     # metadata list all tags
     parser_md_tag_list = subparsers.add_parser(
-        'md-tag-list', help='List all metadata tags. '
-        'Defaults to %(default)s')
+        'md-tag-list', help='List all metadata tags for the given '
+        'picture(s)')
     parser_md_tag_list.add_argument('path', type=str, nargs='+',
                                     help='file or directory')
     parser_md_tag_list.set_defaults(func=md_tag_list)
@@ -319,7 +319,7 @@ def parse_args():
     # image regions add
     parser_image_region_add = subparsers.add_parser(
         'image-region-add',
-        help='Add image metadata region')
+        help='Add image metadata region to the given picture(s)')
     parser_image_region_add.add_argument('path', type=str, help='file')
     parser_image_region_add.add_argument('region', type=int,
                                          help='Region number (must be >= 1)')
@@ -346,9 +346,13 @@ def parse_args():
     parser_image_region_remove.set_defaults(func=image_region_remove)
 
     # GPS setter
-    parser_gps_set = subparsers.add_parser('gps-set', help='Modify GPS data')
+    parser_gps_set = subparsers.add_parser(
+        'gps-set', help='Modify GPS data for the given picture(s). '
+        'This does not set the GPS data if the picture(s) already '
+        'contains GPS data.')
     parser_gps_set.add_argument('--force', action='store_true',
-                                help='Override GPS data')
+                                help='Override GPS data even if the '
+                                'picture(s) already contain GPS data')
     parser_gps_set.add_argument('longitude', type=float, help='Longitude [°N]')
     parser_gps_set.add_argument('latitude', type=float, help='Latitude [°W]')
     parser_gps_set.add_argument('altitude', type=float, help='Altitude [m]')
@@ -365,9 +369,10 @@ def parse_args():
     parser_gps_get.set_defaults(func=gps_get)
 
     # location setter
-    parser_location_set = subparsers.add_parser('location-set',
-                                                help='Set location info based '
-                                                'on the available GPS data')
+    parser_location_set = subparsers.add_parser(
+        'location-set',
+        help='Set location info based on the available GPS data for the '
+        'given picture(s). This sets tags like Iptc.Application2.CountryCode')
     parser_location_set.add_argument('--email', type=str, default=None,
                                      help='This should be used if you plan '
                                      'todo a large number of requests against '
