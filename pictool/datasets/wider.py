@@ -138,7 +138,7 @@ class WIDERAnnotations(object):
         for i, line in enumerate(self._annotations):
             if line.endswith(os.path.basename(image_name)):
                 boxes_count = int(self._annotations[i + 1])
-                for b in xrange(0, boxes_count):
+                for b in range(0, boxes_count):
                     boxes.append(WIDERBBoxInfo(self._annotations[i + 2 + b]))
                 return boxes
         raise Exception('Image name "{}" not found in "{}"'.format(
