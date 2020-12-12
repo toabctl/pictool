@@ -459,13 +459,14 @@ def parse_args():
         'query', type=str, help='A query. Usually a address name')
     parser_gps_get_from_query.set_defaults(func=gps_get_from_query)
 
-    args = parser.parse_args()
-    return args
+    return parser
 
 
 def main():
-    args = parse_args()
-
+    parser = parse_args()
+    args = parser.parse_args()
+    if 'func' not in args:
+        sys.exit(parser.print_help())
     args.func(args)
     sys.exit(0)
 
