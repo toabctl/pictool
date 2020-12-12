@@ -326,7 +326,7 @@ def md_tag_list(args):
         print('{:<55} {:<10}: {}'.format('tag name', 'tag type', 'value'))
         for tag in tags:
             print('{:<65} {:<10}: {}'.format(
-                tag, metadata.get_tag_type(tag),
+                tag, metadata.get_tag_type(tag) or 'unknown',
                 metadata.get_tag_interpreted_string(tag)))
 
 
