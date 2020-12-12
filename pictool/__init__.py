@@ -23,8 +23,8 @@ import requests
 import time
 import sys
 
-import utils_opencv
-import utils_gexiv
+import pictool.utils_opencv
+import pictool.utils_gexiv
 
 
 def _wait():
