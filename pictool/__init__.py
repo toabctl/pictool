@@ -417,7 +417,7 @@ def parse_args():
     group_opencv = parser_face_normalize.add_argument_group(
         'opencv parameters')
     group_opencv.add_argument(
-        '--opencv-data-dir', type=str, default='/usr/share/OpenCV/',
+        '--opencv-data-dir', type=str, default='/usr/share/opencv4/',
         help='This might be different depending on your openCV installation. '
         'Defaults to "%(default)s".')
     group_opencv.add_argument(
