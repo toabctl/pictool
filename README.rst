@@ -1,7 +1,5 @@
 pictool - Random collection of useful things you can do with images
 ===================================================================
-.. image:: https://travis-ci.org/toabctl/pictool.svg
-    :target: https://travis-ci.org/toabctl/pictool
 
 `pictool` is a command line program for manipulating and altering images.
 
