@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Copyright 2018 Thomas Bechtold <thomasbechtold@jpberlin.de>
@@ -19,5 +19,6 @@
 import setuptools
 
 setuptools.setup(
-    setup_requires=['pbr'],
-    pbr=True)
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
+)
