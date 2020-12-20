@@ -1,0 +1,44 @@
+name: pictool
+version: git
+summary: command line program for manipulating and altering images
+description: |
+  pictool is a command line program for manipulating and altering images.
+base: core20
+confinement: strict
+
+parts:
+  pictool:
+    plugin: python
+    source: .
+    build-environment:
+      - SNAPCRAFT_PYTHON_VENV_ARGS: --system-site-packages
+    stage-packages:
+      # from https://github.com/snapcore/snapcraft/blob/master/tests/spread/plugins/v2/snaps/python-hello-staged-python/snap/snapcraft.yaml
+      - libpython3-stdlib
+      - libpython3.8-stdlib
+      - libpython3.8-minimal
+      - python3-pip
+      - python3-setuptools
+      - python3-wheel
+      - python3-venv
+      - python3-minimal
+      - python3-distutils
+      - python3-pkg-resources
+      - python3.8-minimal
+      # pictool stuff
+      - python3-opencv
+      - opencv-data
+      - python3-gi
+      - gir1.2-gexiv2-0.10
+      - gir1.2-glib-2.0
+
+apps:
+  pictool:
+    command: bin/pictool
+    plugs:
+      - network
+      - home
+    environment:
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack
+      PYTHONPATH: $SNAP/usr/lib/python3/dist-packages:$SNAP/lib/python3.8/site-packages/
+      GI_TYPELIB_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/girepository-1.0
