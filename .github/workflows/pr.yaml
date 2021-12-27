@@ -13,6 +13,7 @@ jobs:
         python-version: 3.8
     - name: Install tox
       run: |
+        sudo apt install --yes libgirepository1.0-dev libcairo2-dev pkg-config
         python -m pip install --upgrade pip
         pip install tox
     - name: Lint with flake8
