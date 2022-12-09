@@ -18,10 +18,14 @@
 
 
 import argparse
+from dateutil import parser as du_parser
+import datetime
 import os
+import re
 import requests
 import time
 import sys
+from typing import Optional
 
 import pictool.utils_opencv as utils_opencv
 import pictool.utils_gexiv as utils_gexiv
@@ -311,6 +315,65 @@ def image_region_remove(args):
             print('Not saved!')
 
 
+def _datetime_from_str(string) -> Optional[datetime.datetime]:
+    # try to get a string that looks like a date
+    m = re.search(r'\d{4}.?\d{2}.?\d{2}.?\d{2}.?\d{2}.?\d{2}', string)
+    if m:
+        try:
+            d = du_parser.isoparse(m.group())
+            return d
+        except du_parser.ParserError:
+            pass
+    return None
+
+
+def image_rename(args):
+    for path in _loop_path(args.path):
+        dt = None
+        filename = os.path.basename(path)
+        dirname = os.path.dirname(path)
+        filename_ext = filename.split('.')[-1]
+        # get datetime from metadata
+        metadata = utils_gexiv.get_metadata(path)
+        if metadata:
+            try:
+                dt = metadata.get_date_time()
+            except KeyError:
+                # there might be no 'Exif.Photo.DateTimeOriginal' tag
+                # which raises a KeyError
+                pass
+        if not dt:
+            dt = _datetime_from_str(filename)
+        if not dt:
+            print(f'Can not get date/time for {path}. ignoring ...')
+            continue
+
+        dt_str = dt.strftime(args.output_format_date)
+        path_new = os.path.join(
+            dirname, f'{args.output_format_prefix}{dt_str}.{filename_ext}')
+
+        # do not rename if the path would be the same
+        if path == path_new:
+            continue
+
+        # find a path_new that doesn't already exist
+        i = 1
+        while os.path.exists(path_new):
+            path_new = os.path.join(
+                dirname,
+                f'{args.output_format_prefix}{dt_str}_{i}.{filename_ext}')
+            i += 1
+            # if the current path is a valid path, just use the current path
+            if path == path_new:
+                break
+
+        if path == path_new:
+            continue
+
+        print(f'Rename {path} -> {path_new}')
+        os.rename(path, path_new)
+
+
 def md_tag_list(args):
     """
     List metadata tags for the given image(s)
@@ -372,6 +435,21 @@ def parse_args():
     parser_image_region_remove.add_argument(
         'region', type=int, help='Region number')
     parser_image_region_remove.set_defaults(func=image_region_remove)
+
+    # image rename
+    parser_image_rename = subparsers.add_parser(
+        'image-rename',
+        help='Rename images based on the filename')
+    parser_image_rename.add_argument(
+        '--output-format-prefix', type=str, default='IMG_',
+        help='A filename prefix to add before the date. Default: %(default)s')
+    parser_image_rename.add_argument(
+        '--output-format-date', type=str, default='%Y%m%d_%H%M%S',
+        help='The date format to use (see python '
+        'strptime()). Default: %(default)s')
+    parser_image_rename.add_argument('path', type=str, nargs='+',
+                                     help='file or directory')
+    parser_image_rename.set_defaults(func=image_rename)
 
     # GPS setter
     parser_gps_set = subparsers.add_parser(
