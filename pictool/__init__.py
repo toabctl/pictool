@@ -322,7 +322,7 @@ def _datetime_from_str(string) -> Optional[datetime.datetime]:
         try:
             d = du_parser.isoparse(m.group())
             return d
-        except du_parser.ParserError:
+        except (du_parser.ParserError, ValueError):
             pass
     return None
 
